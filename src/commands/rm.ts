@@ -1,5 +1,6 @@
 import { removeWorktree } from "../core/git";
 import { UsageError } from "../ui/errors";
+import { parseArgsOrUsage } from "./parse";
 import type { CommandDefinition } from "./types";
 
 export const rmCommand: CommandDefinition = {
@@ -8,7 +9,12 @@ export const rmCommand: CommandDefinition = {
   description: "Remove a workbox sandbox worktree by name.",
   usage: "workbox rm <name>",
   run: async (context, args) => {
-    const [name, ...rest] = args;
+    const { positionals } = parseArgsOrUsage({
+      args,
+      allowPositionals: true,
+      strict: true,
+    });
+    const [name, ...rest] = positionals;
     if (!name) {
       throw new UsageError(
         context.flags.nonInteractive

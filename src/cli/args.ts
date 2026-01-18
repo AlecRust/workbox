@@ -1,3 +1,5 @@
+import { parseArgs } from "node:util";
+
 type CliFlags = {
   help: boolean;
   json: boolean;
@@ -11,50 +13,117 @@ type ParsedArgs = {
   errors: string[];
 };
 
-const DEFAULT_FLAGS: CliFlags = {
-  help: false,
-  json: false,
-  nonInteractive: false,
+const GLOBAL_OPTIONS = {
+  help: { type: "boolean", short: "h" },
+  json: { type: "boolean" },
+  "non-interactive": { type: "boolean" },
+} as const;
+
+type ParsedToken =
+  | {
+      kind: "option";
+      index: number;
+      name: string;
+      rawName?: string;
+      value?: string;
+      inlineValue?: boolean;
+    }
+  | {
+      kind: "positional";
+      index: number;
+      value: string;
+    }
+  | {
+      kind: "option-terminator";
+      index: number;
+    };
+
+const flagFromOption = (name: string): keyof CliFlags | null => {
+  switch (name) {
+    case "help":
+      return "help";
+    case "json":
+      return "json";
+    case "non-interactive":
+      return "nonInteractive";
+    default:
+      return null;
+  }
 };
 
-const FLAG_ALIASES: Record<string, keyof CliFlags> = {
-  "--help": "help",
-  "-h": "help",
-  "--json": "json",
-  "--non-interactive": "nonInteractive",
+const pushOptionArgs = (token: ParsedToken, argv: string[], commandArgs: string[]): void => {
+  if (token.kind !== "option") {
+    return;
+  }
+
+  const optionArg = argv[token.index];
+  if (optionArg !== undefined) {
+    commandArgs.push(optionArg);
+  }
+
+  if ("value" in token && token.value !== undefined && token.inlineValue === false) {
+    const valueArg = argv[token.index + 1];
+    if (valueArg !== undefined) {
+      commandArgs.push(valueArg);
+    }
+  }
 };
 
 export const parseCliArgs = (argv: string[]): ParsedArgs => {
-  const flags: CliFlags = { ...DEFAULT_FLAGS };
+  const flags: CliFlags = {
+    help: false,
+    json: false,
+    nonInteractive: false,
+  };
   const errors: string[] = [];
   const commandArgs: string[] = [];
   let command: string | null = null;
   let passthrough = false;
 
-  for (const token of argv) {
-    if (token === "--") {
+  const parsed = parseArgs({
+    args: argv,
+    options: GLOBAL_OPTIONS,
+    strict: false,
+    allowPositionals: true,
+    tokens: true,
+  });
+  const tokens = parsed.tokens as ParsedToken[] | undefined;
+
+  for (const token of tokens ?? []) {
+    if (token.kind === "option-terminator") {
       passthrough = true;
-      commandArgs.push(token);
+      commandArgs.push("--");
       continue;
     }
 
-    if (!passthrough && token in FLAG_ALIASES) {
-      const flag = FLAG_ALIASES[token];
-      flags[flag] = true;
+    if (!command && !passthrough && token.kind === "option") {
+      const flag = flagFromOption(token.name);
+      if (!flag) {
+        const rawName = "rawName" in token ? token.rawName : argv[token.index];
+        errors.push(`Unknown flag "${rawName ?? token.name}".`);
+      } else {
+        flags[flag] = true;
+      }
       continue;
     }
 
-    if (!passthrough && token.startsWith("-")) {
-      errors.push(`Unknown flag "${token}".`);
+    if (!command && token.kind === "positional") {
+      command = token.value;
       continue;
     }
 
-    if (!command) {
-      command = token;
+    if (!command && passthrough && token.kind === "option") {
+      command = argv[token.index] ?? token.name;
       continue;
     }
 
-    commandArgs.push(token);
+    if (token.kind === "positional") {
+      const value = argv[token.index] ?? token.value;
+      commandArgs.push(value);
+      continue;
+    }
+
+    pushOptionArgs(token, argv, commandArgs);
   }
 
   return {

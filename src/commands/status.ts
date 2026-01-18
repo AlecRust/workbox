@@ -1,5 +1,6 @@
 import { getWorktreeStatus } from "../core/git";
 import { UsageError } from "../ui/errors";
+import { parseArgsOrUsage } from "./parse";
 import type { CommandDefinition } from "./types";
 
 export const statusCommand: CommandDefinition = {
@@ -8,11 +9,16 @@ export const statusCommand: CommandDefinition = {
   description: "Show status for workbox worktrees.",
   usage: "workbox status [name]",
   run: async (_context, args) => {
-    if (args.length > 1) {
-      throw new UsageError(`Unexpected arguments: ${args.join(" ")}`);
+    const { positionals } = parseArgsOrUsage({
+      args,
+      allowPositionals: true,
+      strict: true,
+    });
+    if (positionals.length > 1) {
+      throw new UsageError(`Unexpected arguments: ${positionals.join(" ")}`);
     }
 
-    const result = await getWorktreeStatus(args[0]);
+    const result = await getWorktreeStatus(positionals[0]);
     return {
       message: result.message,
       data: result,

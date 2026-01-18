@@ -1,5 +1,6 @@
 import { runBootstrap } from "../bootstrap/runner";
 import { UsageError } from "../ui/errors";
+import { parseArgsOrUsage } from "./parse";
 import type { CommandDefinition } from "./types";
 
 export const setupCommand: CommandDefinition = {
@@ -8,8 +9,13 @@ export const setupCommand: CommandDefinition = {
   description: "Run configured bootstrap steps for a workbox sandbox.",
   usage: "workbox setup",
   run: async (context, args) => {
-    if (args.length > 0) {
-      throw new UsageError(`Unexpected arguments: ${args.join(" ")}`);
+    const { positionals } = parseArgsOrUsage({
+      args,
+      allowPositionals: true,
+      strict: true,
+    });
+    if (positionals.length > 0) {
+      throw new UsageError(`Unexpected arguments: ${positionals.join(" ")}`);
     }
 
     if (!context.config.bootstrap.enabled) {

@@ -1,5 +1,6 @@
 import { startDevSession } from "../core/git";
 import { UsageError } from "../ui/errors";
+import { parseArgsOrUsage } from "./parse";
 import type { CommandDefinition } from "./types";
 
 export const devCommand: CommandDefinition = {
@@ -8,7 +9,12 @@ export const devCommand: CommandDefinition = {
   description: "Start a development session inside a workbox sandbox.",
   usage: "workbox dev <name>",
   run: async (context, args) => {
-    const [name, ...rest] = args;
+    const { positionals } = parseArgsOrUsage({
+      args,
+      allowPositionals: true,
+      strict: true,
+    });
+    const [name, ...rest] = positionals;
     if (!name) {
       throw new UsageError(
         context.flags.nonInteractive
