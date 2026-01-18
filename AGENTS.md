@@ -1,140 +1,46 @@
-# AGENTS.md
+# Repository Guidelines
 
-This repository contains **workbox (wkb)** — a small, high-quality CLI for managing Git worktrees as disposable development sandboxes.
+## Project Structure & Module Organization
 
-This file exists to keep the **end goal and design constraints** clear for AI agents (Codex) and humans working on the project.
+- `src/cli.ts`: CLI entrypoint (published as `workbox` and `wkb`).
+- `src/cli/`: argument parsing and help output.
+- `src/commands/`: subcommands (`new`, `rm`, `list`, `status`, `exec`, `dev`, `setup`, `prune`).
+- `src/core/`: Git/worktree, config, path, and process utilities.
+- `src/bootstrap/`: “setup” bootstrapping steps runner.
+- `src/ui/`: user-facing formatting and error helpers.
+- Tests live next to code as `src/**/*.test.ts`.
+- Config is read from `.workbox/config.toml` or `workbox.toml` (paths resolve from repo root).
 
----
+## Build, Test, and Development Commands
 
-## What we are building
+This is a Bun-first TypeScript CLI (Bun `1.3.6`).
 
-workbox is a **generic, Bun-first CLI** that wraps `git worktree` with a clean, explicit workflow:
+- `bun install`: install dependencies (hooks are installed via `lefthook` on `prepare`).
+- `bun test`: run the Bun test suite (coverage is enabled and enforced).
+- `bun run lint`: lint via Biome.
+- `bun run check`: run `lint` + `tsc --noEmit` + `knip` (unused/invalid exports).
+- `bun run format`: auto-format via Biome.
+- Local CLI run: `bun ./src/cli.ts --help` (or `bun ./src/cli.ts list`).
 
-- One worktree per task
-- One branch per worktree
-- Worktrees are temporary
-- Branches are normal Git branches
+## Coding Style & Naming Conventions
 
-Removing a worktree must **never** delete the branch.
+- Formatting/linting: Biome (`biome.json`) with 2-space indentation, 100-char lines, and double quotes.
+- TypeScript is ESM (`"type": "module"`). Prefer `camelCase` for functions/vars and `PascalCase` for types.
+- Keep modules small and area-based under `src/core`, `src/commands`, and `src/cli`.
 
-The tool is intentionally small and boring. It should feel like a Unix CLI: predictable, explicit, and safe.
+## Testing Guidelines
 
----
+- Framework: `bun:test`.
+- Naming: `*.test.ts`, colocated with the module under test.
+- Coverage: `bunfig.toml` enforces 100% line/function/statement coverage; add/adjust tests with any behavior change.
 
-## Core mental model
+## Commit & Pull Request Guidelines
 
-- A worktree is a **sandbox**
-- A branch is **permanent**
-- Creating and removing worktrees should be cheap
-- No hidden state, no magic
+- Commit messages must follow Conventional Commits (validated in CI via `cog.toml`): e.g. `feat(core): add ...`, `fix: ...`, `chore(deps): ...`.
+- Before opening a PR, run `bun run check` and `bun test`.
+- PRs should describe user-facing behavior changes and include example commands/output when relevant.
 
-If a user understands Git branches and directories, they should understand workbox.
+## Security & Configuration Tips
 
----
-
-## Scope of the tool
-
-workbox is responsible for:
-
-- Creating and removing Git worktrees safely
-- Keeping a clear mapping between:
-  - branch ↔ worktree path
-- Providing optional bootstrap hooks:
-  - copy env files
-  - install dependencies
-  - run checks
-  - run a dev command
-- Supporting parallel work (humans + automation)
-
-workbox is **not** responsible for:
-
-- Replacing Git
-- Managing PRs
-- Managing CI
-- Managing containers or databases
-- Owning developer environments
-
----
-
-## Design constraints (do not violate)
-
-- Bun-first (runtime, package manager, tests)
-- ESM-only
-- TypeScript everywhere
-- Minimal dependencies
-- Repo-local configuration only
-- No global state outside the repo
-- No interactive prompts by default
-- Deterministic, scriptable behavior
-
----
-
-## CLI principles
-
-- Every command must be usable non-interactively
-- Every command must have:
-  - clear exit codes
-  - stable output
-  - optional `--json` mode
-- Commands must fail loudly and clearly when unsafe
-- Never guess when deleting files or directories
-
----
-
-## Configuration principles
-
-- Config is TOML
-- Config is loaded from:
-  1. `.workbox/config.toml`
-  2. `workbox.toml`
-- Config is validated strictly with good error messages
-- No global config, no hidden defaults
-
----
-
-## Safety guarantees
-
-workbox must never:
-
-- Delete a branch automatically
-- Delete a directory that is not a registered worktree
-- Assume a base branch unless explicitly configured
-- Overwrite env files without explicit intent
-- Hide state in global locations
-
----
-
-## Code quality bar
-
-- Small, focused modules
-- Strong typing
-- Clear naming
-- Explicit control flow
-- No clever abstractions
-- Everything testable
-- Tests colocated with source files
-- All tooling checks must pass
-
-If a feature increases complexity without clear value, do not add it.
-
----
-
-## Guiding question for every change
-
-> Does this make worktrees easier to use **without** making Git harder to reason about?
-
-If the answer is no, the change is probably wrong.
-
----
-
-## End goal (v1.0)
-
-At v1.0, workbox should be:
-
-- Boring in the best way
-- Trusted to manage worktrees safely
-- Fast enough to feel instant
-- Simple enough to explain in a single screen
-- Useful for both humans and AI agents
-
-Keep this goal in mind for every change.
+- Don’t commit local state: `.workbox/worktrees/`, `coverage/`, `.env`, and logs are ignored.
+- Treat config-defined commands (`bootstrap.steps`, `dev.command`) as code: review before running in shared repos.
