@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Check commit messages
@@ -32,7 +32,7 @@ jobs:
     needs: commitlint
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -48,7 +48,7 @@ jobs:
     needs: commitlint
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
