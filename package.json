@@ -1,9 +1,26 @@
 {
-  "name": "workbox",
-  "version": "0.0.0",
+  "name": "@alecrust/workbox",
+  "version": "0.1.0",
   "description": "Bun-first CLI for managing Git worktree sandboxes.",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlecRust/workbox.git"
+  },
+  "homepage": "https://github.com/AlecRust/workbox#readme",
+  "bugs": {
+    "url": "https://github.com/AlecRust/workbox/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "bin": {
     "workbox": "./src/cli.ts",
     "wkb": "./src/cli.ts"
@@ -12,7 +29,7 @@
     "bun": "1.3.6"
   },
   "scripts": {
-    "prepare": "lefthook install",
+    "prepare": "bun scripts/prepare.ts",
     "test": "bun test",
     "lint": "biome lint .",
     "check:types": "tsc --noEmit",

@@ -5,13 +5,19 @@ Minimal Bun-first CLI for Git worktrees. Creates a worktree per sandbox and remo
 ## Install
 
 ```sh
-bun add -g github:AlecRust/workbox
+bun add -g @alecrust/workbox
 ```
 
-Planned npm package:
+Or via npm (still requires Bun on your PATH):
 
 ```sh
-npm i -g @AlecRust/workbox
+npm i -g @alecrust/workbox
+```
+
+Or install from GitHub:
+
+```sh
+bun add -g github:AlecRust/workbox
 ```
 
 ## Use
