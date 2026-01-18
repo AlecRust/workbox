@@ -1,0 +1,16 @@
+#:schema https://docs.cocogitto.io/cog-schema.json
+
+ignore_merge_commits = true
+
+[commit_types]
+feat = { changelog_title = "Features" }
+fix = { changelog_title = "Bug Fixes" }
+docs = { changelog_title = "Documentation" }
+style = { changelog_title = "Style" }
+refactor = { changelog_title = "Refactor" }
+perf = { changelog_title = "Performance" }
+test = { changelog_title = "Tests" }
+build = { changelog_title = "Build" }
+ci = { changelog_title = "CI" }
+chore = { changelog_title = "Chore", omit_from_changelog = true }
+revert = { changelog_title = "Reverts" }

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "schedule:monthly",
+    "group:allNonMajor",
+    "group:linters",
+    "customManagers:biomeVersions",
+    ":automergeLinters",
+    ":maintainLockFilesMonthly"
+  ],
+  "lockFileMaintenance": {
+    "automerge": true
+  },
+  "major": {
+    "automerge": false
+  },
+  "packageRules": [
+    {
+      "matchPackageNames": ["@biomejs/biome"],
+      "groupName": "biome"
+    }
+  ],
+  "rangeStrategy": "bump"
+}
