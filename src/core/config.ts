@@ -1,7 +1,12 @@
 import { z } from "zod";
 
 import { ConfigError } from "../ui/errors";
-import { getConfigCandidatePaths, resolveWorktreesDir } from "./paths";
+import {
+  CONFIG_PRIMARY,
+  CONFIG_SECONDARY,
+  getConfigCandidatePaths,
+  resolveWorktreesDir,
+} from "./paths";
 
 const BootstrapStepSchema = z
   .object({
@@ -12,10 +17,10 @@ const BootstrapStepSchema = z
   })
   .strict();
 
-const BootstrapSchemaBase = z
+const BootstrapSchema = z
   .object({
-    enabled: z.boolean().default(true),
-    steps: z.array(BootstrapStepSchema).default([]),
+    enabled: z.boolean(),
+    steps: z.array(BootstrapStepSchema),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -32,21 +37,12 @@ const BootstrapSchemaBase = z
     });
   });
 
-const BootstrapSchema = BootstrapSchemaBase.default(() => ({
-  enabled: true,
-  steps: [],
-}));
-
 const WorktreesSchema = z
   .object({
-    directory: z.string().min(1).default(".workbox/worktrees"),
-    branch_prefix: z.string().min(1).default("wkb/"),
+    directory: z.string().min(1, "Worktree directory is required."),
+    branch_prefix: z.string().min(1, "Worktree branch prefix is required."),
   })
-  .strict()
-  .default({
-    directory: ".workbox/worktrees",
-    branch_prefix: "wkb/",
-  });
+  .strict();
 
 const WorkboxConfigSchema = z
   .object({
@@ -63,7 +59,7 @@ export type ResolvedWorkboxConfig = WorkboxConfig & {
 
 type LoadedConfig = {
   config: ResolvedWorkboxConfig;
-  path: string | null;
+  path: string;
 };
 
 const formatZodError = (error: z.ZodError, filePath: string): string => {
@@ -92,20 +88,16 @@ const parseConfig = (source: string, filePath: string): WorkboxConfig => {
   return result.data;
 };
 
-const resolveConfig = (
-  config: WorkboxConfig,
-  cwd: string,
-  configPath: string | null
-): ResolvedWorkboxConfig => ({
+const resolveConfig = (config: WorkboxConfig, repoRoot: string): ResolvedWorkboxConfig => ({
   ...config,
   worktrees: {
     ...config.worktrees,
-    directory: resolveWorktreesDir(config.worktrees.directory, cwd, configPath),
+    directory: resolveWorktreesDir(config.worktrees.directory, repoRoot),
   },
 });
 
-export const loadConfig = async (cwd: string): Promise<LoadedConfig> => {
-  const candidates = getConfigCandidatePaths(cwd);
+export const loadConfig = async (repoRoot: string): Promise<LoadedConfig> => {
+  const candidates = getConfigCandidatePaths(repoRoot);
 
   for (const configPath of candidates) {
     const file = Bun.file(configPath);
@@ -113,15 +105,13 @@ export const loadConfig = async (cwd: string): Promise<LoadedConfig> => {
       const contents = await file.text();
       const config = parseConfig(contents, configPath);
       return {
-        config: resolveConfig(config, cwd, configPath),
+        config: resolveConfig(config, repoRoot),
         path: configPath,
       };
     }
   }
 
-  const config = WorkboxConfigSchema.parse({});
-  return {
-    config: resolveConfig(config, cwd, null),
-    path: null,
-  };
+  throw new ConfigError(
+    `No workbox config found. Expected ${CONFIG_PRIMARY} or ${CONFIG_SECONDARY} in ${repoRoot}.`
+  );
 };

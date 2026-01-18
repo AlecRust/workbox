@@ -3,6 +3,7 @@ import { parseCliArgs } from "./cli/args";
 import { renderCommandHelp, renderGlobalHelp } from "./cli/help";
 import { getCommand } from "./commands";
 import { loadConfig } from "./core/config";
+import { getRepoRoot } from "./core/repo";
 import { CliError, UsageError } from "./ui/errors";
 import { formatOutput } from "./ui/log";
 
@@ -55,7 +56,8 @@ export const runCli = async (argv: string[], cwd = process.cwd()): Promise<numbe
     throw new UsageError(`Unknown command "${parsed.command}".`);
   }
 
-  const { config, path } = await loadConfig(cwd);
+  const repoRoot = await getRepoRoot(cwd);
+  const { config, path } = await loadConfig(repoRoot);
   const result = await command.run(
     {
       cwd,
@@ -66,10 +68,11 @@ export const runCli = async (argv: string[], cwd = process.cwd()): Promise<numbe
     parsed.commandArgs
   );
 
+  const exitCode = result.exitCode ?? 0;
   writeOutput(
     formatOutput(
       {
-        ok: true,
+        ok: exitCode === 0,
         command: command.name,
         message: result.message,
         data: result.data,
@@ -79,7 +82,7 @@ export const runCli = async (argv: string[], cwd = process.cwd()): Promise<numbe
     process.stdout
   );
 
-  return result.exitCode ?? 0;
+  return exitCode;
 };
 
 const main = async () => {

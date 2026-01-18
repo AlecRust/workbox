@@ -96,14 +96,18 @@ export const parseCliArgs = (argv: string[]): ParsedArgs => {
       continue;
     }
 
-    if (!command && !passthrough && token.kind === "option") {
+    if (token.kind === "option" && !passthrough) {
       const flag = flagFromOption(token.name);
-      if (!flag) {
+      if (flag) {
+        flags[flag] = true;
+        continue;
+      }
+      if (!command) {
         const rawName = "rawName" in token ? token.rawName : argv[token.index];
         errors.push(`Unknown flag "${rawName ?? token.name}".`);
-      } else {
-        flags[flag] = true;
+        continue;
       }
+      pushOptionArgs(token, argv, commandArgs);
       continue;
     }
 

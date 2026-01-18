@@ -9,7 +9,7 @@ type GlobalFlags = {
 export type CommandContext = {
   cwd: string;
   config: ResolvedWorkboxConfig;
-  configPath: string | null;
+  configPath: string;
   flags: GlobalFlags;
 };
 

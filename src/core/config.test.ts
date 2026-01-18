@@ -14,24 +14,37 @@ const withTempDir = async (fn: (cwd: string) => Promise<void>) => {
   }
 };
 
+const minimalConfig = `[worktrees]
+directory = ".workbox/worktrees"
+branch_prefix = "wkb/"
+
+[bootstrap]
+enabled = false
+steps = []
+`;
+
 describe("loadConfig", () => {
-  it("returns defaults when no config exists", async () => {
+  it("rejects when no config exists", async () => {
     await withTempDir(async (cwd) => {
-      const result = await loadConfig(cwd);
-      expect(result.path).toBeNull();
-      expect(result.config.worktrees.directory).toBe(join(cwd, ".workbox", "worktrees"));
+      await expect(loadConfig(cwd)).rejects.toThrow(/No workbox config found/);
     });
   });
 
   it("prefers .workbox/config.toml over workbox.toml", async () => {
     await withTempDir(async (cwd) => {
       await mkdir(join(cwd, ".workbox"), { recursive: true });
-      await writeFile(join(cwd, ".workbox", "config.toml"), '[worktrees]\ndirectory = "sandbox"\n');
-      await writeFile(join(cwd, "workbox.toml"), '[worktrees]\ndirectory = "fallback"\n');
+      await writeFile(
+        join(cwd, ".workbox", "config.toml"),
+        minimalConfig.replace('.workbox/worktrees"', 'sandbox"')
+      );
+      await writeFile(
+        join(cwd, "workbox.toml"),
+        minimalConfig.replace('.workbox/worktrees"', 'fallback"')
+      );
 
       const result = await loadConfig(cwd);
       expect(result.path).toBe(join(cwd, ".workbox", "config.toml"));
-      expect(result.config.worktrees.directory).toBe(join(cwd, ".workbox", "sandbox"));
+      expect(result.config.worktrees.directory).toBe(join(cwd, "sandbox"));
     });
   });
 
@@ -44,17 +57,26 @@ describe("loadConfig", () => {
 
   it("rejects invalid schema types", async () => {
     await withTempDir(async (cwd) => {
-      await writeFile(join(cwd, "workbox.toml"), "[worktrees]\ndirectory = 123\n");
+      await writeFile(
+        join(cwd, "workbox.toml"),
+        minimalConfig.replace('directory = ".workbox/worktrees"', "directory = 123")
+      );
       await expect(loadConfig(cwd)).rejects.toThrow(/worktrees.directory/);
     });
   });
 
   it("rejects duplicate bootstrap step names", async () => {
     await withTempDir(async (cwd) => {
-      await writeFile(
-        join(cwd, "workbox.toml"),
-        '[bootstrap]\nsteps = [{ name = "install", run = "bun install" }, { name = "install", run = "bun run build" }]\n'
-      );
+      const duplicateConfig = minimalConfig
+        .replace(
+          "steps = []",
+          `steps = [
+  { name = "install", run = "bun install" },
+  { name = "install", run = "bun run build" }
+]`
+        )
+        .replace("enabled = false", "enabled = true");
+      await writeFile(join(cwd, "workbox.toml"), duplicateConfig);
       await expect(loadConfig(cwd)).rejects.toThrow(/Duplicate bootstrap step name/);
     });
   });

@@ -5,7 +5,6 @@ import {
   CONFIG_PRIMARY,
   CONFIG_SECONDARY,
   getConfigCandidatePaths,
-  getDefaultWorktreesDir,
   resolveWorktreesDir,
 } from "./paths";
 
@@ -18,16 +17,8 @@ describe("paths", () => {
     ]);
   });
 
-  it("resolves default worktrees directory", () => {
+  it("resolves worktrees directory relative to repo root", () => {
     const cwd = "/repo";
-    expect(getDefaultWorktreesDir(cwd)).toBe(join(cwd, ".workbox", "worktrees"));
-  });
-
-  it("resolves worktrees directory against config location", () => {
-    const cwd = "/repo";
-    const configPath = join(cwd, ".workbox", "config.toml");
-    expect(resolveWorktreesDir("worktrees", cwd, configPath)).toBe(
-      join(cwd, ".workbox", "worktrees")
-    );
+    expect(resolveWorktreesDir(".workbox/worktrees", cwd)).toBe(join(cwd, ".workbox", "worktrees"));
   });
 });

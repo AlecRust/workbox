@@ -11,6 +11,14 @@ describe("parseCliArgs", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("accepts global flags after the command", () => {
+    const result = parseCliArgs(["list", "--json"]);
+    expect(result.command).toBe("list");
+    expect(result.flags.json).toBe(true);
+    expect(result.commandArgs).toEqual([]);
+    expect(result.errors).toEqual([]);
+  });
+
   it("reports unknown flags", () => {
     const result = parseCliArgs(["--nope"]);
     expect(result.errors.length).toBe(1);
@@ -21,6 +29,13 @@ describe("parseCliArgs", () => {
     const result = parseCliArgs(["exec", "demo", "--", "echo", "--help"]);
     expect(result.command).toBe("exec");
     expect(result.commandArgs).toEqual(["demo", "--", "echo", "--help"]);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("keeps command-specific flags intact", () => {
+    const result = parseCliArgs(["exec", "demo", "--cwd", "sandbox"]);
+    expect(result.command).toBe("exec");
+    expect(result.commandArgs).toEqual(["demo", "--cwd", "sandbox"]);
     expect(result.errors).toEqual([]);
   });
 

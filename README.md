@@ -36,6 +36,8 @@ Looks for config in:
 1. `.workbox/config.toml`
 2. `workbox.toml`
 
+Config is required. Paths are resolved relative to the repo root.
+
 Example:
 
 ```toml

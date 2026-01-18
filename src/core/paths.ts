@@ -1,23 +1,12 @@
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 export const CONFIG_PRIMARY = join(".workbox", "config.toml");
 export const CONFIG_SECONDARY = "workbox.toml";
 
-export const getConfigCandidatePaths = (cwd: string): string[] => [
-  join(cwd, CONFIG_PRIMARY),
-  join(cwd, CONFIG_SECONDARY),
+export const getConfigCandidatePaths = (repoRoot: string): string[] => [
+  join(repoRoot, CONFIG_PRIMARY),
+  join(repoRoot, CONFIG_SECONDARY),
 ];
 
-const getWorkboxDir = (cwd: string): string => join(cwd, ".workbox");
-
-export const getDefaultWorktreesDir = (cwd: string): string =>
-  join(getWorkboxDir(cwd), "worktrees");
-
-export const resolveWorktreesDir = (
-  worktreesDir: string,
-  cwd: string,
-  configPath: string | null
-): string => {
-  const baseDir = configPath ? dirname(configPath) : cwd;
-  return resolve(baseDir, worktreesDir);
-};
+export const resolveWorktreesDir = (worktreesDir: string, repoRoot: string): string =>
+  resolve(repoRoot, worktreesDir);
