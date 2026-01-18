@@ -1,4 +1,4 @@
-# workbox (wkb)
+# workbox (wkb) [![CI](https://github.com/AlecRust/workbox/actions/workflows/ci.yml/badge.svg)](https://github.com/AlecRust/workbox/actions/workflows/ci.yml)
 
 Minimal Bun-first CLI for Git worktrees. Creates a worktree per sandbox and removes it cleanly.
 
