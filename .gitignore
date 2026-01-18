@@ -1,8 +1,5 @@
-.DS_Store
 node_modules
-bun.lockb
 *.log
-dist
 coverage
 .env
 .workbox/worktrees/

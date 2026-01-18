@@ -1,0 +1,6 @@
+[test]
+# Always enable coverage reporting.
+coverage = true
+
+# Keep coverage focused on source files.
+coverageSkipTestFiles = true
