@@ -2,5 +2,5 @@ pre-commit:
   parallel: true
   commands:
     biome:
-      run: bunx biome check --write --staged
+      run: bunx biome check --write --staged --no-errors-on-unmatched
       stage_fixed: true
