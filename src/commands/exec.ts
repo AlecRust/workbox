@@ -1,4 +1,5 @@
-import { execInWorktree } from "../core/git";
+import { getWorkboxWorktree } from "../core/git";
+import { runCommand } from "../core/process";
 import { UsageError } from "../ui/errors";
 import { parseArgsOrUsage } from "./parse";
 import type { CommandDefinition } from "./types";
@@ -37,15 +38,30 @@ const splitExecArgs = (args: string[]): { name: string; command: string[] } => {
 
 export const execCommand: CommandDefinition = {
   name: "exec",
-  summary: "Run a command inside a sandbox (stub)",
+  summary: "Run a command inside a sandbox",
   description: "Execute a command inside a workbox sandbox worktree.",
   usage: "workbox exec <name> -- <command>",
-  run: async (_context, args) => {
+  run: async (context, args) => {
     const { name, command } = splitExecArgs(args);
-    const result = await execInWorktree(name, command);
+
+    const worktree = await getWorkboxWorktree({
+      repoRoot: context.repoRoot,
+      worktreesDir: context.config.worktrees.directory,
+      branchPrefix: context.config.worktrees.branch_prefix,
+      name,
+    });
+
+    const mode = context.flags.json ? "capture" : "inherit";
+    const result = await runCommand({ cmd: command, cwd: worktree.path, mode });
+
     return {
-      message: result.message,
-      data: result,
+      message: "",
+      data: {
+        worktree,
+        command,
+        result,
+      },
+      exitCode: result.exitCode,
     };
   },
 };

@@ -1,25 +1,14 @@
-import { CliError } from "../ui/errors";
+import { dirname, resolve } from "node:path";
 
-const readStream = async (stream: ReadableStream<Uint8Array> | null): Promise<string> => {
-  if (!stream) {
-    return "";
-  }
-  return new Response(stream).text();
-};
+import { CliError } from "../ui/errors";
+import { runCommand } from "./process";
 
 const runGit = async (args: string[], cwd: string): Promise<string> => {
-  const proc = Bun.spawn({
+  const { stdout, stderr, exitCode } = await runCommand({
     cmd: ["git", ...args],
     cwd,
-    stdout: "pipe",
-    stderr: "pipe",
+    mode: "capture",
   });
-
-  const [stdout, stderr, exitCode] = await Promise.all([
-    readStream(proc.stdout),
-    readStream(proc.stderr),
-    proc.exited,
-  ]);
 
   if (exitCode !== 0) {
     const message = stderr.trim() || stdout.trim() || "Unknown git error.";
@@ -29,10 +18,27 @@ const runGit = async (args: string[], cwd: string): Promise<string> => {
   return stdout.trim();
 };
 
-export const getRepoRoot = async (cwd: string): Promise<string> => {
-  const root = await runGit(["rev-parse", "--show-toplevel"], cwd);
-  if (!root) {
+export const getRepoInfo = async (
+  cwd: string
+): Promise<{ repoRoot: string; worktreeRoot: string; gitCommonDir: string }> => {
+  const worktreeRoot = await runGit(["rev-parse", "--show-toplevel"], cwd);
+  if (!worktreeRoot) {
+    throw new CliError("Unable to resolve Git worktree root.");
+  }
+
+  const commonDirRaw = await runGit(["rev-parse", "--git-common-dir"], cwd);
+  if (!commonDirRaw) {
+    throw new CliError("Unable to resolve Git common directory.");
+  }
+
+  // `--git-common-dir` is typically relative to the current working directory,
+  // not the worktree root. Resolving it relative to `cwd` ensures this works
+  // from nested subdirectories.
+  const gitCommonDir = resolve(cwd, commonDirRaw);
+  const repoRoot = dirname(gitCommonDir);
+  if (!repoRoot) {
     throw new CliError("Unable to resolve Git repository root.");
   }
-  return root;
+
+  return { repoRoot, worktreeRoot, gitCommonDir };
 };

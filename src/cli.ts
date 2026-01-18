@@ -3,7 +3,7 @@ import { parseCliArgs } from "./cli/args";
 import { renderCommandHelp, renderGlobalHelp } from "./cli/help";
 import { getCommand } from "./commands";
 import { loadConfig } from "./core/config";
-import { getRepoRoot } from "./core/repo";
+import { getRepoInfo } from "./core/repo";
 import { CliError, UsageError } from "./ui/errors";
 import { formatOutput } from "./ui/log";
 
@@ -25,6 +25,12 @@ export const runCli = async (argv: string[], cwd = process.cwd()): Promise<numbe
 
   if (parsed.errors.length > 0) {
     throw new UsageError(`${parsed.errors.join(" ")} Run '${TOOL_NAME} --help' for usage.`);
+  }
+
+  if (parsed.flags.nonInteractive) {
+    process.env.CI ??= "1";
+    process.env.GIT_TERMINAL_PROMPT ??= "0";
+    process.env.GCM_INTERACTIVE ??= "Never";
   }
 
   const command = parsed.command ? getCommand(parsed.command) : undefined;
@@ -56,11 +62,13 @@ export const runCli = async (argv: string[], cwd = process.cwd()): Promise<numbe
     throw new UsageError(`Unknown command "${parsed.command}".`);
   }
 
-  const repoRoot = await getRepoRoot(cwd);
+  const { repoRoot, worktreeRoot } = await getRepoInfo(cwd);
   const { config, path } = await loadConfig(repoRoot);
   const result = await command.run(
     {
       cwd,
+      repoRoot,
+      worktreeRoot,
       config,
       configPath: path,
       flags: parsed.flags,
@@ -99,7 +107,7 @@ const main = async () => {
         {
           ok: false,
           message: `Error: ${message}`,
-          errors: [message],
+          ...(outputMode === "json" ? { errors: [message] } : {}),
         },
         outputMode
       ),

@@ -5,15 +5,19 @@ import type { CommandDefinition } from "./types";
 
 export const newCommand: CommandDefinition = {
   name: "new",
-  summary: "Create a new sandbox worktree (stub)",
+  summary: "Create a new sandbox worktree",
   description: "Create a new workbox sandbox worktree with the given name.",
-  usage: "workbox new <name>",
+  usage: "workbox new <name> [--from <ref>]",
   run: async (context, args) => {
-    const { positionals } = parseArgsOrUsage({
+    const parsed = parseArgsOrUsage({
       args,
+      options: {
+        from: { type: "string" },
+      },
       allowPositionals: true,
       strict: true,
     });
+    const { positionals } = parsed;
     const [name, ...rest] = positionals;
     if (!name) {
       throw new UsageError(
@@ -26,15 +30,26 @@ export const newCommand: CommandDefinition = {
       throw new UsageError(`Unexpected arguments: ${rest.join(" ")}`);
     }
 
-    const result = await createWorktree({
+    const fromValue = parsed.values.from;
+    const baseRef =
+      (typeof fromValue === "string" ? fromValue : undefined) ?? context.config.worktrees.base_ref;
+    if (!baseRef) {
+      throw new UsageError(
+        "Missing base ref. Provide --from <ref> or set worktrees.base_ref in config."
+      );
+    }
+
+    const worktree = await createWorktree({
+      repoRoot: context.repoRoot,
       name,
-      baseDir: context.config.worktrees.directory,
+      worktreesDir: context.config.worktrees.directory,
       branchPrefix: context.config.worktrees.branch_prefix,
+      baseRef,
     });
 
     return {
-      message: result.message,
-      data: result,
+      message: `Created worktree "${worktree.name}" at ${worktree.path} on branch ${worktree.managedBranch}.`,
+      data: worktree,
     };
   },
 };

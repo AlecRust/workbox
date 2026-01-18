@@ -5,7 +5,7 @@ import type { CommandDefinition } from "./types";
 
 export const setupCommand: CommandDefinition = {
   name: "setup",
-  summary: "Run bootstrap steps (stub)",
+  summary: "Run bootstrap steps",
   description: "Run configured bootstrap steps for a workbox sandbox.",
   usage: "workbox setup",
   run: async (context, args) => {
@@ -28,10 +28,14 @@ export const setupCommand: CommandDefinition = {
       };
     }
 
-    const result = await runBootstrap(context.config.bootstrap.steps);
+    const result = await runBootstrap(context.config.bootstrap.steps, {
+      repoRoot: context.worktreeRoot,
+      mode: context.flags.json ? "capture" : "inherit",
+    });
     return {
       message: result.message,
       data: result,
+      exitCode: result.exitCode,
     };
   },
 };

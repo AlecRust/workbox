@@ -8,6 +8,8 @@ type GlobalFlags = {
 
 export type CommandContext = {
   cwd: string;
+  repoRoot: string;
+  worktreeRoot: string;
   config: ResolvedWorkboxConfig;
   configPath: string;
   flags: GlobalFlags;

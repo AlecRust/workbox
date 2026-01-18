@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ConfigError } from "../ui/errors";
+import { checkPathWithinRoot } from "./path";
 import {
   CONFIG_PRIMARY,
   CONFIG_SECONDARY,
@@ -41,6 +42,7 @@ const WorktreesSchema = z
   .object({
     directory: z.string().min(1, "Worktree directory is required."),
     branch_prefix: z.string().min(1, "Worktree branch prefix is required."),
+    base_ref: z.string().min(1, "Worktree base ref must be non-empty.").optional(),
   })
   .strict();
 
@@ -48,6 +50,13 @@ const WorkboxConfigSchema = z
   .object({
     worktrees: WorktreesSchema,
     bootstrap: BootstrapSchema,
+    dev: z
+      .object({
+        command: z.string().min(1, "Dev command is required."),
+        open: z.string().min(1, "Dev open command must be non-empty.").optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -88,13 +97,28 @@ const parseConfig = (source: string, filePath: string): WorkboxConfig => {
   return result.data;
 };
 
-const resolveConfig = (config: WorkboxConfig, repoRoot: string): ResolvedWorkboxConfig => ({
-  ...config,
-  worktrees: {
-    ...config.worktrees,
-    directory: resolveWorktreesDir(config.worktrees.directory, repoRoot),
-  },
-});
+const resolveConfig = async (
+  config: WorkboxConfig,
+  repoRoot: string
+): Promise<ResolvedWorkboxConfig> => {
+  const resolved = resolveWorktreesDir(config.worktrees.directory, repoRoot);
+  const within = await checkPathWithinRoot({
+    rootDir: repoRoot,
+    candidatePath: resolved,
+    label: "worktrees.directory",
+  });
+  if (!within.ok) {
+    throw new ConfigError(within.reason);
+  }
+
+  return {
+    ...config,
+    worktrees: {
+      ...config.worktrees,
+      directory: resolved,
+    },
+  };
+};
 
 export const loadConfig = async (repoRoot: string): Promise<LoadedConfig> => {
   const candidates = getConfigCandidatePaths(repoRoot);
@@ -105,7 +129,7 @@ export const loadConfig = async (repoRoot: string): Promise<LoadedConfig> => {
       const contents = await file.text();
       const config = parseConfig(contents, configPath);
       return {
-        config: resolveConfig(config, repoRoot),
+        config: await resolveConfig(config, repoRoot),
         path: configPath,
       };
     }

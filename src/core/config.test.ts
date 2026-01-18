@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -65,6 +65,16 @@ describe("loadConfig", () => {
     });
   });
 
+  it("rejects worktree directory outside the repo root", async () => {
+    await withTempDir(async (cwd) => {
+      await writeFile(
+        join(cwd, "workbox.toml"),
+        minimalConfig.replace('directory = ".workbox/worktrees"', 'directory = "../worktrees"')
+      );
+      await expect(loadConfig(cwd)).rejects.toThrow(/must be within repo root/);
+    });
+  });
+
   it("rejects duplicate bootstrap step names", async () => {
     await withTempDir(async (cwd) => {
       const duplicateConfig = minimalConfig
@@ -78,6 +88,19 @@ describe("loadConfig", () => {
         .replace("enabled = false", "enabled = true");
       await writeFile(join(cwd, "workbox.toml"), duplicateConfig);
       await expect(loadConfig(cwd)).rejects.toThrow(/Duplicate bootstrap step name/);
+    });
+  });
+
+  it("rejects worktree directory that escapes the repo via symlink", async () => {
+    await withTempDir(async (cwd) => {
+      const outside = await mkdtemp(join(tmpdir(), "workbox-outside-"));
+      try {
+        await symlink(outside, join(cwd, ".workbox"));
+        await writeFile(join(cwd, "workbox.toml"), minimalConfig);
+        await expect(loadConfig(cwd)).rejects.toThrow(/escapes repo root via symlink/);
+      } finally {
+        await rm(outside, { recursive: true, force: true });
+      }
     });
   });
 });

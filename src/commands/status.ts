@@ -5,10 +5,10 @@ import type { CommandDefinition } from "./types";
 
 export const statusCommand: CommandDefinition = {
   name: "status",
-  summary: "Show sandbox status (stub)",
+  summary: "Show sandbox status",
   description: "Show status for workbox worktrees.",
   usage: "workbox status [name]",
-  run: async (_context, args) => {
+  run: async (context, args) => {
     const { positionals } = parseArgsOrUsage({
       args,
       allowPositionals: true,
@@ -18,9 +18,24 @@ export const statusCommand: CommandDefinition = {
       throw new UsageError(`Unexpected arguments: ${positionals.join(" ")}`);
     }
 
-    const result = await getWorktreeStatus(positionals[0]);
+    const result = await getWorktreeStatus({
+      repoRoot: context.repoRoot,
+      worktreesDir: context.config.worktrees.directory,
+      branchPrefix: context.config.worktrees.branch_prefix,
+      name: positionals[0],
+    });
     return {
-      message: result.message,
+      message:
+        result.length === 0
+          ? "No workbox worktrees found."
+          : [
+              "Workbox status:",
+              ...result.map((item) => {
+                const branch = item.branch ?? "(detached)";
+                const managed = item.managed ? "managed" : "unmanaged";
+                return `- ${item.name}\t${branch}\t${managed}\t${item.clean ? "clean" : "dirty"}\t${item.path}`;
+              }),
+            ].join("\n"),
       data: result,
     };
   },

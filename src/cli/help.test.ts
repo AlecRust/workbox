@@ -6,8 +6,8 @@ import { renderCommandHelp, renderGlobalHelp } from "./help";
 describe("help rendering", () => {
   it("lists commands in global help", () => {
     const output = renderGlobalHelp("workbox", "wkb");
-    expect(output).toContain("new      Create a new sandbox worktree (stub)");
-    expect(output).toContain("list     List sandbox worktrees (stub)");
+    expect(output).toContain("new      Create a new sandbox worktree");
+    expect(output).toContain("list     List sandbox worktrees");
     expect(output).toContain("Alias: wkb");
   });
 

@@ -5,10 +5,10 @@ import type { CommandDefinition } from "./types";
 
 export const pruneCommand: CommandDefinition = {
   name: "prune",
-  summary: "Prune stale worktrees (stub)",
-  description: "Remove stale workbox worktrees.",
+  summary: "Prune stale git worktree metadata",
+  description: "Prune stale git worktree metadata (does not delete branches).",
   usage: "workbox prune",
-  run: async (_context, args) => {
+  run: async (context, args) => {
     const { positionals } = parseArgsOrUsage({
       args,
       allowPositionals: true,
@@ -18,9 +18,12 @@ export const pruneCommand: CommandDefinition = {
       throw new UsageError(`Unexpected arguments: ${positionals.join(" ")}`);
     }
 
-    const result = await pruneWorktrees();
+    const result = await pruneWorktrees(context.repoRoot);
     return {
-      message: result.message,
+      message:
+        result.stdout.length > 0
+          ? `Pruned worktree metadata:\n${result.stdout}`
+          : "Pruned worktree metadata.",
       data: result,
     };
   },

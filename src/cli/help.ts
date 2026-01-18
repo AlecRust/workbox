@@ -1,8 +1,7 @@
 import { commands } from "../commands";
 import type { CommandDefinition } from "../commands/types";
 
-const TOOL_DESCRIPTION =
-  "workbox manages fast Git worktree sandboxes with optional bootstraps (skeleton).";
+const TOOL_DESCRIPTION = "workbox manages fast Git worktree sandboxes with optional bootstraps.";
 
 export const renderGlobalHelp = (toolName: string, alias: string): string => {
   const commandLines = commands.map((command) => `  ${command.name.padEnd(8)} ${command.summary}`);
@@ -34,7 +33,7 @@ export const renderCommandHelp = (toolName: string, command: CommandDefinition):
     "Description:",
     `  ${command.description}`,
     "",
-    "Options:",
+    "Global options:",
     "  --help            Show help for this command",
     "  --json            Output machine-readable JSON",
     "  --non-interactive Disable prompts and fail fast",

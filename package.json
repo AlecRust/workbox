@@ -14,7 +14,8 @@
   "scripts": {
     "prepare": "lefthook install",
     "test": "bun test",
-    "check": "biome check --write . && tsc --noEmit && knip"
+    "check": "biome check . && tsc --noEmit && knip",
+    "format": "biome check --write ."
   },
   "dependencies": {
     "zod": "^4.3.5"
