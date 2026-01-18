@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, rm, symlink } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -33,6 +33,19 @@ describe("bootstrap runner", () => {
       expect(result.status).toBe("ok");
       expect(result.exitCode).toBe(0);
       expect(result.steps[0]?.stdout).toBe("hello");
+    });
+  });
+
+  it("resolves step cwd within the repo root", async () => {
+    await withTempDir(async (repoRoot) => {
+      const cwd = "nested";
+      await mkdir(join(repoRoot, cwd), { recursive: true });
+      const result = await runBootstrap([{ name: "ok", run: "echo ok", cwd }], {
+        repoRoot,
+        mode: "capture",
+      });
+      expect(result.status).toBe("ok");
+      expect(result.steps[0]?.cwd).toBe(join(repoRoot, cwd));
     });
   });
 

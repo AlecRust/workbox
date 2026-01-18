@@ -4,3 +4,6 @@ coverage = true
 
 # Keep coverage focused on source files.
 coverageSkipTestFiles = true
+
+# Enforce 100% coverage thresholds.
+coverageThreshold = { lines = 1.0, functions = 1.0, statements = 1.0 }

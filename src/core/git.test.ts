@@ -1,11 +1,12 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
+import * as gitModule from "./git";
 import {
   createWorktree,
   getManagedWorktrees,
+  getWorkboxWorktree,
   getWorkboxWorktrees,
   getWorktreeStatus,
   removeWorktree,
@@ -162,5 +163,206 @@ describe("core/git worktrees", () => {
         await rm(outside, { recursive: true, force: true });
       }
     });
+  });
+
+  it("rejects invalid worktree names", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+      const cases = [
+        { name: "", message: /non-empty/ },
+        { name: ".", message: /Invalid worktree name/ },
+        { name: "bad/name", message: /Invalid worktree name/ },
+        { name: "bad..name", message: /Invalid worktree name/ },
+      ];
+
+      for (const testCase of cases) {
+        await expect(
+          createWorktree({
+            repoRoot,
+            worktreesDir,
+            branchPrefix,
+            baseRef: "HEAD",
+            name: testCase.name,
+          })
+        ).rejects.toThrow(testCase.message);
+      }
+    });
+  });
+
+  it("rejects invalid managed branch names", async () => {
+    await withRepo(async (repoRoot) => {
+      await expect(
+        createWorktree({
+          repoRoot,
+          worktreesDir: join(repoRoot, ".workbox", "worktrees"),
+          branchPrefix: "wkb/~",
+          baseRef: "HEAD",
+          name: "box1",
+        })
+      ).rejects.toThrow(/Invalid branch name/);
+    });
+  });
+
+  it("rejects missing base refs", async () => {
+    await withRepo(async (repoRoot) => {
+      await expect(
+        createWorktree({
+          repoRoot,
+          worktreesDir: join(repoRoot, ".workbox", "worktrees"),
+          branchPrefix: "wkb/",
+          baseRef: "missing-ref",
+          name: "box1",
+        })
+      ).rejects.toThrow(/Base ref "missing-ref" does not exist/);
+    });
+  });
+
+  it("rejects existing managed branches", async () => {
+    await withRepo(async (repoRoot) => {
+      await runGit(["branch", "wkb/box1"], repoRoot);
+
+      await expect(
+        createWorktree({
+          repoRoot,
+          worktreesDir: join(repoRoot, ".workbox", "worktrees"),
+          branchPrefix: "wkb/",
+          baseRef: "HEAD",
+          name: "box1",
+        })
+      ).rejects.toThrow(/already exists/);
+    });
+  });
+
+  it("rejects unknown worktrees", async () => {
+    await withRepo(async (repoRoot) => {
+      await expect(
+        getWorkboxWorktree({
+          repoRoot,
+          worktreesDir: join(repoRoot, ".workbox", "worktrees"),
+          branchPrefix: "wkb/",
+          name: "missing",
+        })
+      ).rejects.toThrow(/No workbox worktree found/);
+    });
+  });
+
+  it("detects path mismatches between listing and lookup", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+      await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box1",
+      });
+
+      const outside = await mkdtemp(join(tmpdir(), "workbox-outside-"));
+      const original = gitModule.getWorkboxWorktrees;
+      const spy = spyOn(gitModule, "getWorkboxWorktrees").mockImplementation(async (input) => {
+        const items = await original(input);
+        const item = items.find((entry) => entry.name === "box1");
+        if (item) {
+          await rm(item.path, { recursive: true, force: true });
+          await symlink(outside, item.path);
+        }
+        return items;
+      });
+
+      try {
+        await expect(
+          gitModule.getWorkboxWorktree({
+            repoRoot,
+            worktreesDir,
+            branchPrefix,
+            name: "box1",
+          })
+        ).rejects.toThrow(/path mismatch/);
+      } finally {
+        spy.mockRestore();
+        await rm(outside, { recursive: true, force: true });
+      }
+    });
+  });
+
+  it("returns status for a named worktree", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+      const created = await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box1",
+      });
+      await writeFile(join(created.path, "dirty.txt"), "dirty\n");
+
+      const status = await getWorktreeStatus({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        name: "box1",
+      });
+      expect(status).toHaveLength(1);
+      expect(status[0]?.clean).toBe(false);
+    });
+  });
+
+  it("handles missing worktrees directories", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const listed = await getWorkboxWorktrees({
+        repoRoot,
+        worktreesDir,
+        branchPrefix: "wkb/",
+      });
+      expect(listed).toEqual([]);
+    });
+  });
+
+  it("sorts worktrees by name", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+      await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box-b",
+      });
+      await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box-a",
+      });
+
+      const listed = await getWorkboxWorktrees({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+      });
+      expect(listed.map((item) => item.name)).toEqual(["box-a", "box-b"]);
+    });
+  });
+
+  it("surfaces git failures when listing worktrees", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "workbox-norepo-"));
+    try {
+      await expect(
+        getWorkboxWorktrees({
+          repoRoot,
+          worktreesDir: join(repoRoot, ".workbox", "worktrees"),
+          branchPrefix: "wkb/",
+        })
+      ).rejects.toThrow(/Git command failed/);
+    } finally {
+      await rm(repoRoot, { recursive: true, force: true });
+    }
   });
 });

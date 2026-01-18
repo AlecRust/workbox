@@ -18,11 +18,10 @@ export const devCommand: CommandDefinition = {
     });
     const [name, ...rest] = positionals;
     if (!name) {
-      throw new UsageError(
-        context.flags.nonInteractive
-          ? "Missing worktree name in non-interactive mode."
-          : "Missing worktree name."
-      );
+      const message = context.flags.nonInteractive
+        ? "Missing worktree name in non-interactive mode."
+        : "Missing worktree name.";
+      throw new UsageError(message);
     }
     if (rest.length > 0) {
       throw new UsageError(`Unexpected arguments: ${rest.join(" ")}`);
@@ -64,13 +63,12 @@ export const devCommand: CommandDefinition = {
         cwd: worktree.path,
         mode,
       });
-      if (openResult.exitCode !== 0) {
+      if (openResult.exitCode !== 0)
         return {
           message: `dev open command failed (exit ${openResult.exitCode}).`,
           data: { worktree, bootstrap: bootstrapResult, open: openResult },
           exitCode: openResult.exitCode,
         };
-      }
     }
 
     const devResult = await runShellCommand({

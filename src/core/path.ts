@@ -19,6 +19,37 @@ const realpathOrResolve = async (path: string): Promise<string> => {
   }
 };
 
+const checkSegmentsWithinRoot = async (
+  rootResolved: string,
+  rootReal: string,
+  rel: string,
+  label: string
+): Promise<{ ok: true } | { ok: false; reason: string }> => {
+  let cursor = rootResolved;
+  const segments = rel.split(sep).filter((segment) => segment.length > 0);
+
+  for (const segment of segments) {
+    cursor = join(cursor, segment);
+    try {
+      const stat = await lstat(cursor);
+      if (stat.isSymbolicLink()) {
+        const linkTarget = await realpathOrResolve(cursor);
+        if (!isSubpath(linkTarget, rootReal)) {
+          return {
+            ok: false,
+            reason: `${label} escapes repo root via symlink (${cursor} -> ${linkTarget}).`,
+          };
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") return { ok: true };
+      throw error;
+    }
+  }
+
+  return { ok: true };
+};
+
 export const checkPathWithinRoot = async (input: {
   rootDir: string;
   candidatePath: string;
@@ -40,28 +71,9 @@ export const checkPathWithinRoot = async (input: {
     return { ok: true };
   }
 
-  let cursor = rootResolved;
-  const segments = rel.split(sep).filter((segment) => segment.length > 0);
-
-  for (const segment of segments) {
-    cursor = join(cursor, segment);
-    try {
-      const stat = await lstat(cursor);
-      if (stat.isSymbolicLink()) {
-        const linkTarget = await realpathOrResolve(cursor);
-        if (!isSubpath(linkTarget, rootReal)) {
-          return {
-            ok: false,
-            reason: `${input.label} escapes repo root via symlink (${cursor} -> ${linkTarget}).`,
-          };
-        }
-      }
-    } catch (error) {
-      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-        break;
-      }
-      throw error;
-    }
+  const segmentCheck = await checkSegmentsWithinRoot(rootResolved, rootReal, rel, input.label);
+  if (!segmentCheck.ok) {
+    return segmentCheck;
   }
 
   try {
@@ -73,9 +85,7 @@ export const checkPathWithinRoot = async (input: {
       };
     }
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return { ok: true };
-    }
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return { ok: true };
     throw error;
   }
 

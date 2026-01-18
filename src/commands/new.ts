@@ -20,11 +20,10 @@ export const newCommand: CommandDefinition = {
     const { positionals } = parsed;
     const [name, ...rest] = positionals;
     if (!name) {
-      throw new UsageError(
-        context.flags.nonInteractive
-          ? "Missing worktree name in non-interactive mode."
-          : "Missing worktree name."
-      );
+      const message = context.flags.nonInteractive
+        ? "Missing worktree name in non-interactive mode."
+        : "Missing worktree name.";
+      throw new UsageError(message);
     }
     if (rest.length > 0) {
       throw new UsageError(`Unexpected arguments: ${rest.join(" ")}`);

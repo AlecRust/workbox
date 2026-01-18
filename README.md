@@ -17,14 +17,14 @@ npm i -g @AlecRust/workbox
 ## Use
 
 ```sh
-wkb new <name> [--from <ref>]      # create sandbox worktree
+wkb new <name> [--from <ref>]         # create sandbox worktree
 wkb rm <name> [--force] [--unmanaged] # remove worktree (keep branch)
-wkb list                           # list workbox worktrees
-wkb prune                          # prune stale git worktree metadata
-wkb status [name]                  # show repo/worktree info and cleanliness
-wkb setup                          # run configured bootstrap steps (in current worktree)
-wkb dev <name>                     # run configured dev command in a sandbox
-wkb exec <name> -- <cmd...>        # run a command in a sandbox
+wkb list                              # list workbox worktrees
+wkb prune                             # prune stale git worktree metadata
+wkb status [name]                     # show repo/worktree info and cleanliness
+wkb setup                             # run configured bootstrap steps (in current worktree)
+wkb dev <name>                        # run configured dev command in a sandbox
+wkb exec <name> -- <cmd...>           # run a command in a sandbox
 ```
 
 `workbox` and `wkb` are equivalent.

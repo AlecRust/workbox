@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import * as pathModule from "node:path";
 import { join } from "node:path";
-
+import * as processModule from "./process";
 import { getRepoInfo } from "./repo";
 
 const readStream = async (stream: ReadableStream<Uint8Array> | null): Promise<string> => {
@@ -78,5 +79,73 @@ describe("core/repo getRepoInfo", () => {
       expect(await realpath(infoNested.repoRoot)).toBe(await realpath(repoRoot));
       expect(await realpath(infoNested.worktreeRoot)).toBe(await realpath(worktreeRoot));
     });
+  });
+
+  it("fails when git commands error", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "workbox-norepo-"));
+    try {
+      await expect(getRepoInfo(dir)).rejects.toThrow(/Git command failed/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails when git returns an empty worktree root", async () => {
+    const spy = spyOn(processModule, "runCommand").mockResolvedValue({
+      exitCode: 0,
+      stdout: "",
+      stderr: "",
+    });
+    try {
+      await expect(getRepoInfo(process.cwd())).rejects.toThrow(
+        "Unable to resolve Git worktree root."
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("fails when git returns an empty common directory", async () => {
+    const spy = spyOn(processModule, "runCommand");
+    spy.mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: "/repo",
+      stderr: "",
+    });
+    spy.mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: "",
+      stderr: "",
+    });
+    try {
+      await expect(getRepoInfo(process.cwd())).rejects.toThrow(
+        "Unable to resolve Git common directory."
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("fails when the repo root cannot be resolved", async () => {
+    const runSpy = spyOn(processModule, "runCommand");
+    runSpy.mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: "/repo",
+      stderr: "",
+    });
+    runSpy.mockResolvedValueOnce({
+      exitCode: 0,
+      stdout: ".git",
+      stderr: "",
+    });
+    const dirnameSpy = spyOn(pathModule, "dirname").mockReturnValue("");
+    try {
+      await expect(getRepoInfo(process.cwd())).rejects.toThrow(
+        "Unable to resolve Git repository root."
+      );
+    } finally {
+      runSpy.mockRestore();
+      dirnameSpy.mockRestore();
+    }
   });
 });

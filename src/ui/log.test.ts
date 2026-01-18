@@ -27,4 +27,16 @@ describe("formatOutput", () => {
     expect(parsed.ok).toBe(false);
     expect(parsed.errors).toEqual(["Nope"]);
   });
+
+  it("includes help and errors in text output", () => {
+    const output = formatOutput(
+      {
+        ok: false,
+        help: "Usage: workbox list",
+        errors: ["bad flag", "missing arg"],
+      },
+      "text"
+    );
+    expect(output).toBe("Usage: workbox list\nErrors:\n- bad flag\n- missing arg");
+  });
 });
