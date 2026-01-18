@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.1.0)"
+        required: true
+        type: string
   push:
     tags:
       - "v*.*.*"
@@ -12,11 +17,14 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ env.RELEASE_TAG }}
       - name: Setup Biome
         uses: biomejs/setup-biome@v2
         with:
@@ -33,31 +41,33 @@ jobs:
         run: bun run check
       - name: Run tests
         run: bun test
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
       - name: Verify package version matches tag
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); const tag=process.env.GITHUB_REF_NAME.replace(/^v/,''); if(pkg.version!==tag){console.error(`package.json version ${pkg.version} != tag ${tag}`); process.exit(1)}"
+        run: node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); const tag=process.env.RELEASE_TAG.replace(/^v/,''); if(pkg.version!==tag){console.error(`package.json version ${pkg.version} != tag ${tag}`); process.exit(1)}"
       - name: Generate changelog
         id: git-cliff
         uses: orhun/git-cliff-action@v4
         with:
           config: git-cliff.toml
-          args: -vv --latest --strip header
+          args: -vv --current --strip header
         env:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
-      - name: Setup Node
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
       - name: Publish to npm
-        if: startsWith(github.ref, 'refs/tags/v') && secrets.NPM_TOKEN != ''
-        run: npm publish
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN not set; skipping npm publish."
+            exit 0
+          fi
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           body: ${{ steps.git-cliff.outputs.content }}
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
