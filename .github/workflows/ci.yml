@@ -21,10 +21,14 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          # For pull_request events, default checkout is a merge commit which may not be conventional.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Check commit messages
         uses: cocogitto/cocogitto-action@v4
         with:
           command: check
+          # Only lint the commits introduced by this PR/push, not the entire repo history.
+          args: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
 
   check:
     name: Lint and Typecheck
