@@ -99,10 +99,40 @@ describe("core/git worktrees", () => {
         branchPrefix,
         name: "box1",
         force: false,
+        deleteBranch: false,
       });
 
       expect(await gitSucceeds(["show-ref", "--verify", "refs/heads/wkb/box1"], repoRoot)).toBe(
         true
+      );
+      expect(await getManagedWorktrees({ repoRoot, worktreesDir, branchPrefix })).toEqual([]);
+    });
+  });
+
+  it("removes a managed worktree and deletes its branch when requested", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+
+      await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box1",
+      });
+
+      await removeWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        name: "box1",
+        force: false,
+        deleteBranch: true,
+      });
+
+      expect(await gitSucceeds(["show-ref", "--verify", "refs/heads/wkb/box1"], repoRoot)).toBe(
+        false
       );
       expect(await getManagedWorktrees({ repoRoot, worktreesDir, branchPrefix })).toEqual([]);
     });
@@ -136,12 +166,46 @@ describe("core/git worktrees", () => {
         branchPrefix,
         name: "box1",
         force: false,
+        deleteBranch: false,
       });
 
       expect(await gitSucceeds(["show-ref", "--verify", "refs/heads/wkb/box1"], repoRoot)).toBe(
         true
       );
       expect(await getWorkboxWorktrees({ repoRoot, worktreesDir, branchPrefix })).toEqual([]);
+    });
+  });
+
+  it("refuses to delete a branch for an unmanaged worktree", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+
+      const created = await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box1",
+      });
+
+      await runGit(["checkout", "--detach"], created.path);
+
+      await expect(
+        removeWorktree({
+          repoRoot,
+          worktreesDir,
+          branchPrefix,
+          name: "box1",
+          force: false,
+          deleteBranch: true,
+        })
+      ).rejects.toThrow(/unmanaged worktree/);
+
+      expect(await gitSucceeds(["show-ref", "--verify", "refs/heads/wkb/box1"], repoRoot)).toBe(
+        true
+      );
+      expect(await getWorkboxWorktrees({ repoRoot, worktreesDir, branchPrefix })).toHaveLength(1);
     });
   });
 

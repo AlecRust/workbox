@@ -24,7 +24,7 @@ bun add -g github:AlecRust/workbox
 
 ```sh
 wkb new <name> [--from <ref>]         # create sandbox worktree
-wkb rm <name> [--force] [--unmanaged] # remove worktree (keep branch)
+wkb rm <name> [--force] [--unmanaged] [--delete-branch] # remove worktree
 wkb list                              # list workbox worktrees
 wkb prune                             # prune stale git worktree metadata
 wkb status [name]                     # show repo/worktree info and cleanliness

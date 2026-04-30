@@ -270,6 +270,7 @@ export const removeWorktree = async (input: {
   branchPrefix: string;
   name: string;
   force: boolean;
+  deleteBranch: boolean;
 }): Promise<WorktreeInfo> => {
   await assertWorktreesDirSafe(input.repoRoot, input.worktreesDir);
   const worktree = await getWorkboxWorktree({
@@ -279,10 +280,18 @@ export const removeWorktree = async (input: {
     name: input.name,
   });
 
+  if (input.deleteBranch && !worktree.managed) {
+    throw new CliError(`Refusing to delete a branch for unmanaged worktree "${input.name}".`);
+  }
+
   await runGit(
     ["worktree", "remove", ...(input.force ? ["--force"] : []), "--", worktree.path],
     input.repoRoot
   );
+
+  if (input.deleteBranch) {
+    await runGit(["branch", input.force ? "-D" : "-d", worktree.managedBranch], input.repoRoot);
+  }
 
   return worktree;
 };
