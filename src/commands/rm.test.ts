@@ -203,6 +203,52 @@ describe("rm command", () => {
     });
   });
 
+  it("deletes managed branches with --delete-branch", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+
+      const config: ResolvedWorkboxConfig = {
+        worktrees: {
+          directory: worktreesDir,
+          branch_prefix: branchPrefix,
+          base_ref: "HEAD",
+        },
+        bootstrap: {
+          enabled: false,
+          steps: [],
+        },
+      };
+
+      await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box1",
+      });
+
+      const context = {
+        cwd: repoRoot,
+        repoRoot,
+        worktreeRoot: repoRoot,
+        config,
+        configPath: join(repoRoot, "workbox.toml"),
+        flags: {
+          help: false,
+          json: false,
+          nonInteractive: false,
+        },
+      };
+
+      const result = await rmCommand.run(context, ["box1", "--delete-branch"]);
+      expect(result.message).toContain("deleted branch wkb/box1");
+      expect(await gitSucceeds(["show-ref", "--verify", "refs/heads/wkb/box1"], repoRoot)).toBe(
+        false
+      );
+    });
+  });
+
   it("refuses to remove unmanaged worktrees unless --unmanaged is provided", async () => {
     await withRepo(async (repoRoot) => {
       const worktreesDir = join(repoRoot, ".workbox", "worktrees");
@@ -247,6 +293,55 @@ describe("rm command", () => {
       await expect(rmCommand.run(context, ["box1"])).rejects.toThrow(/--unmanaged/);
 
       await rmCommand.run(context, ["box1", "--unmanaged"]);
+      expect(await gitSucceeds(["show-ref", "--verify", "refs/heads/wkb/box1"], repoRoot)).toBe(
+        true
+      );
+    });
+  });
+
+  it("refuses to delete branches for unmanaged worktrees", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const branchPrefix = "wkb/";
+
+      const config: ResolvedWorkboxConfig = {
+        worktrees: {
+          directory: worktreesDir,
+          branch_prefix: branchPrefix,
+          base_ref: "HEAD",
+        },
+        bootstrap: {
+          enabled: false,
+          steps: [],
+        },
+      };
+
+      const created = await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix,
+        baseRef: "HEAD",
+        name: "box1",
+      });
+
+      await runGit(["checkout", "--detach"], created.path);
+
+      const context = {
+        cwd: repoRoot,
+        repoRoot,
+        worktreeRoot: repoRoot,
+        config,
+        configPath: join(repoRoot, "workbox.toml"),
+        flags: {
+          help: false,
+          json: false,
+          nonInteractive: true,
+        },
+      };
+
+      await expect(
+        rmCommand.run(context, ["box1", "--unmanaged", "--delete-branch"])
+      ).rejects.toThrow(/unmanaged worktree/);
       expect(await gitSucceeds(["show-ref", "--verify", "refs/heads/wkb/box1"], repoRoot)).toBe(
         true
       );

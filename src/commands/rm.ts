@@ -7,13 +7,14 @@ export const rmCommand: CommandDefinition = {
   name: "rm",
   summary: "Remove a sandbox worktree",
   description: "Remove a workbox sandbox worktree by name.",
-  usage: "workbox rm <name> [--force] [--unmanaged]",
+  usage: "workbox rm <name> [--force] [--unmanaged] [--delete-branch]",
   run: async (context, args) => {
     const parsed = parseArgsOrUsage({
       args,
       options: {
         force: { type: "boolean" },
         unmanaged: { type: "boolean" },
+        "delete-branch": { type: "boolean" },
       },
       allowPositionals: true,
       strict: true,
@@ -49,10 +50,14 @@ export const rmCommand: CommandDefinition = {
       branchPrefix: context.config.worktrees.branch_prefix,
       name,
       force: parsed.values.force === true,
+      deleteBranch: parsed.values["delete-branch"] === true,
     });
 
     return {
-      message: `Removed worktree "${worktree.name}" at ${worktree.path}. No branches were deleted.`,
+      message:
+        parsed.values["delete-branch"] === true
+          ? `Removed worktree "${worktree.name}" at ${worktree.path} and deleted branch ${worktree.managedBranch}.`
+          : `Removed worktree "${worktree.name}" at ${worktree.path}. No branches were deleted.`,
       data: worktree,
     };
   },
