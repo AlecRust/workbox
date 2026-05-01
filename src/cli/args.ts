@@ -4,6 +4,7 @@ type CliFlags = {
   help: boolean;
   json: boolean;
   nonInteractive: boolean;
+  version: boolean;
 };
 
 type ParsedArgs = {
@@ -17,6 +18,7 @@ const GLOBAL_OPTIONS = {
   help: { type: "boolean", short: "h" },
   json: { type: "boolean" },
   "non-interactive": { type: "boolean" },
+  version: { type: "boolean" },
 } as const;
 
 type ParsedToken =
@@ -46,6 +48,8 @@ const flagFromOption = (name: string): keyof CliFlags | null => {
       return "json";
     case "non-interactive":
       return "nonInteractive";
+    case "version":
+      return "version";
     default:
       return null;
   }
@@ -74,6 +78,7 @@ export const parseCliArgs = (argv: string[]): ParsedArgs => {
     help: false,
     json: false,
     nonInteractive: false,
+    version: false,
   };
   const errors: string[] = [];
   const commandArgs: string[] = [];

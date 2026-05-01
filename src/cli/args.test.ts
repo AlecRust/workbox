@@ -52,6 +52,13 @@ describe("parseCliArgs", () => {
     expect(result.command).toBe("list");
   });
 
+  it("parses version flag", () => {
+    const result = parseCliArgs(["--version"]);
+    expect(result.flags.version).toBe(true);
+    expect(result.command).toBeNull();
+    expect(result.errors).toEqual([]);
+  });
+
   it("treats passthrough options as the command when no command is set", () => {
     const result = parseCliArgs(["--", "--do", "thing"]);
     expect(result.command).toBe("--do");

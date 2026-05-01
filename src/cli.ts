@@ -12,6 +12,13 @@ const TOOL_ALIAS = "wkb";
 
 type OutputTarget = NodeJS.WritableStream;
 
+const loadPackageVersion = async (): Promise<string> => {
+  const packageJson = (await Bun.file(new URL("../package.json", import.meta.url)).json()) as {
+    version?: unknown;
+  };
+  return typeof packageJson.version === "string" ? packageJson.version : "unknown";
+};
+
 const writeOutput = (output: string, stream: OutputTarget): void => {
   if (output.trim().length === 0) {
     return;
@@ -25,6 +32,22 @@ export const runCli = async (argv: string[], cwd = process.cwd()): Promise<numbe
 
   if (parsed.errors.length > 0) {
     throw new UsageError(`${parsed.errors.join(" ")} Run '${TOOL_NAME} --help' for usage.`);
+  }
+
+  if (parsed.flags.version) {
+    const version = await loadPackageVersion();
+    writeOutput(
+      formatOutput(
+        {
+          ok: true,
+          message: `${TOOL_NAME} ${version}`,
+          data: { version },
+        },
+        outputMode
+      ),
+      process.stdout
+    );
+    return 0;
   }
 
   if (parsed.flags.nonInteractive) {

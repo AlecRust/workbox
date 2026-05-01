@@ -20,6 +20,7 @@ export const renderGlobalHelp = (toolName: string, alias: string): string => {
     "  --help            Show help for a command",
     "  --json            Output machine-readable JSON",
     "  --non-interactive Disable prompts and fail fast",
+    "  --version         Show the current version",
   ].join("\n");
 };
 
@@ -37,4 +38,5 @@ export const renderCommandHelp = (toolName: string, command: CommandDefinition):
     "  --help            Show help for this command",
     "  --json            Output machine-readable JSON",
     "  --non-interactive Disable prompts and fail fast",
+    "  --version         Show the current version",
   ].join("\n");
