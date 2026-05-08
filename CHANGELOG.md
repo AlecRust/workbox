@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+## [0.4.0] - 2026-05-08
+### Features
+- Add worktree provisioning (#14)
+
 ## [0.3.1] - 2026-05-01
 ### Chore
 - Remove stale config planning doc
