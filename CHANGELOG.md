@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+## [0.4.4] - 2026-05-19
+### Chore
+- Update Bun and development dependencies
+
 ## [0.4.3] - 2026-05-19
 ### CI
 - Remove the temporary npm token fallback from release publishing

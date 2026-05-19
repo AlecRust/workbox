@@ -13,7 +13,7 @@
 
 ## Build, Test, and Development Commands
 
-This is a Bun-first TypeScript CLI (Bun `1.3.6`).
+This is a Bun-first TypeScript CLI (Bun `1.3.14`).
 
 - `bun install`: install dependencies (hooks are installed via `lefthook` on `prepare`).
 - `bun test`: run the Bun test suite (coverage is enabled and enforced).
