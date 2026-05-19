@@ -2,6 +2,12 @@
 
 ## [unreleased]
 
+## [0.4.3] - 2026-05-19
+### CI
+- Remove the temporary npm token fallback from release publishing
+### Documentation
+- Document steady-state trusted publishing setup
+
 ## [0.4.2] - 2026-05-19
 ### Bug Fixes
 - Preserve CLI binary entries in the npm package
