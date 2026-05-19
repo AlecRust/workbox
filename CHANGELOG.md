@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+## [0.4.2] - 2026-05-19
+### Bug Fixes
+- Preserve CLI binary entries in the npm package
+- Publish the full changelog in the npm package tarball
+
 ## [0.4.1] - 2026-05-19
 ### CI
 - Publish npm releases with trusted publishing and provenance

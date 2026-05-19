@@ -30,16 +30,16 @@ state is npm trusted publishing with GitHub Actions OIDC, so releases do not nee
    - `bun run check`
    - `bun test`
    - `npm pack --dry-run --ignore-scripts --json`
-3. Bump the version in `package.json` (for example, `0.4.1`).
+3. Bump the version in `package.json` (for example, `0.4.2`).
 4. Update `CHANGELOG.md` with the release date and user-facing changes.
 5. Commit the release prep:
    - `git add package.json CHANGELOG.md bun.lock`
-   - `git commit -m "chore(release): prepare for v0.4.1"`
+   - `git commit -m "chore(release): prepare for v0.4.2"`
 6. Create the tag:
-   - `git tag -a v0.4.1 -m "v0.4.1"`
+   - `git tag -a v0.4.2 -m "v0.4.2"`
 7. Push commit and tag:
    - `git push origin main`
-   - `git push origin v0.4.1`
+   - `git push origin v0.4.2`
 
 ## What happens in CI
 

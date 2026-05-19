@@ -1,6 +1,6 @@
 {
   "name": "@alecrust/workbox",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Bun-first CLI for managing Git worktree sandboxes.",
   "license": "MIT",
   "type": "module",
@@ -24,8 +24,8 @@
     "CHANGELOG.md"
   ],
   "bin": {
-    "workbox": "./src/cli.ts",
-    "wkb": "./src/cli.ts"
+    "workbox": "src/cli.ts",
+    "wkb": "src/cli.ts"
   },
   "engines": {
     "bun": "1.3.13"

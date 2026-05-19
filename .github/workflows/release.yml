@@ -50,6 +50,12 @@ jobs:
           package-manager-cache: false
       - name: Verify package version matches tag
         run: node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); const tag=process.env.RELEASE_TAG.replace(/^v/,''); if(pkg.version!==tag){console.error(`package.json version ${pkg.version} != tag ${tag}`); process.exit(1)}"
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          # Only needed for the first npm publish, before trusted publishing can be configured.
+          # After `npm trust github ...` succeeds, remove this secret and OIDC is used instead.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Generate changelog
         id: git-cliff
         uses: orhun/git-cliff-action@v4
@@ -59,12 +65,6 @@ jobs:
         env:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
-      - name: Publish to npm
-        run: npm publish --provenance --access public
-        env:
-          # Only needed for the first npm publish, before trusted publishing can be configured.
-          # After `npm trust github ...` succeeds, remove this secret and OIDC is used instead.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
