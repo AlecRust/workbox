@@ -4,8 +4,10 @@ Minimal Bun-first CLI for Git worktrees. Creates a worktree per sandbox and remo
 
 ## Install
 
+Requires Bun `1.3.13` or newer.
+
 ```sh
-bun add -g github:AlecRust/workbox
+bun add -g @alecrust/workbox
 ```
 
 Verify the install:
