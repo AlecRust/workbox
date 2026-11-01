@@ -2,6 +2,14 @@
 
 ## [unreleased]
 
+## [0.4.5] - 2026-11-01
+### Chore
+- Update all dependencies to their latest stable releases, including TypeScript 7.
+- Require Bun 1.4.4 or newer and update CI and release tooling.
+- Migrate Biome configuration and replace deprecated Zod issue codes.
+### Tests
+- Restore 100% coverage for filesystem errors, worktree path changes, and shell selection.
+
 ## [0.4.4] - 2026-05-19
 ### Chore
 - Update Bun and development dependencies

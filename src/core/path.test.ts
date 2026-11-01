@@ -150,6 +150,33 @@ describe("core/path", () => {
     });
   });
 
+  it.each(["lstat", "realpath"] as const)("propagates %s permission errors", async (method) => {
+    await withTempDir(async (rootDir) => {
+      const candidatePath = join(rootDir, "child");
+      await mkdir(candidatePath);
+      const originalRealpath = fs.realpath;
+      const error = Object.assign(new Error("permission denied"), { code: "EACCES" });
+      const spy =
+        method === "lstat"
+          ? spyOn(fs, "lstat").mockRejectedValue(error)
+          : spyOn(fs, "realpath").mockImplementation((async (
+              ...args: Parameters<typeof fs.realpath>
+            ) => {
+              if (args[0] === candidatePath) {
+                throw error;
+              }
+              return originalRealpath(...args);
+            }) as typeof fs.realpath);
+      try {
+        await expect(
+          checkPathWithinRoot({ rootDir, candidatePath, label: "candidate" })
+        ).rejects.toBe(error);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  });
+
   it("detects resolution escapes after the initial checks", async () => {
     await withTempDir(async (rootDir) => {
       const candidateDir = join(rootDir, "child");

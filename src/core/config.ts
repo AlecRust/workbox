@@ -58,7 +58,7 @@ const validateBootstrapSteps = (
   steps.forEach((step, index) => {
     if (seen.has(step.name)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["steps", index, "name"],
         message: `Duplicate bootstrap step name "${step.name}".`,
       });
@@ -79,7 +79,7 @@ const validateProvisionSteps = (
   steps.forEach((step, index) => {
     if (seen.has(step.name)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["steps", index, "name"],
         message: `Duplicate provision step name "${step.name}".`,
       });

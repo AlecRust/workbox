@@ -1,4 +1,5 @@
 import { describe, expect, it, spyOn } from "bun:test";
+import * as fs from "node:fs/promises";
 import { mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,6 +12,7 @@ import {
   getWorktreeStatus,
   removeWorktree,
 } from "./git";
+import * as processModule from "./process";
 
 const readStream = async (stream: ReadableStream<Uint8Array> | null): Promise<string> => {
   if (!stream) {
@@ -69,6 +71,58 @@ const withRepo = async (fn: (repoRoot: string) => Promise<void>) => {
 };
 
 describe("core/git worktrees", () => {
+  it("ignores porcelain metadata before a worktree and non-direct children", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const spy = spyOn(processModule, "runCommand").mockResolvedValue({
+        exitCode: 0,
+        stdout: `prunable stale metadata\nworktree ${worktreesDir}\n\nworktree ${join(worktreesDir, "nested", "box")}\n`,
+        stderr: "",
+      });
+      try {
+        expect(await getWorkboxWorktrees({ repoRoot, worktreesDir, branchPrefix: "wkb/" })).toEqual(
+          []
+        );
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  });
+
+  it("ignores worktrees whose path changes while listing", async () => {
+    await withRepo(async (repoRoot) => {
+      const worktreesDir = join(repoRoot, ".workbox", "worktrees");
+      const created = await createWorktree({
+        repoRoot,
+        worktreesDir,
+        branchPrefix: "wkb/",
+        baseRef: "HEAD",
+        name: "box1",
+      });
+      const original = fs.realpath;
+      let resolutions = 0;
+      const spy = spyOn(fs, "realpath").mockImplementation((async (
+        ...args: Parameters<typeof fs.realpath>
+      ) => {
+        if (
+          (args[0] === created.path || args[0] === join(worktreesDir, "box1")) &&
+          ++resolutions > 1
+        ) {
+          return join(repoRoot, "moved");
+        }
+        return original(...args);
+      }) as typeof fs.realpath);
+      try {
+        expect(await getWorkboxWorktrees({ repoRoot, worktreesDir, branchPrefix: "wkb/" })).toEqual(
+          []
+        );
+        expect(resolutions).toBe(2);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  });
+
   it("initializes submodules when creating a managed worktree", async () => {
     const originalAllowProtocol = process.env.GIT_ALLOW_PROTOCOL;
     process.env.GIT_ALLOW_PROTOCOL = "file";
