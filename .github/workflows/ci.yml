@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           # For pull_request events, default checkout is a merge commit which may not be conventional.
@@ -36,7 +36,7 @@ jobs:
     needs: commitlint
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup Biome
         uses: biomejs/setup-biome@v2
         with:
@@ -62,7 +62,7 @@ jobs:
     needs: commitlint
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
